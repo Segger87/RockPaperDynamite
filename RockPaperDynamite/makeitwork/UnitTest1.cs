@@ -37,5 +37,22 @@ namespace makeitwork
 
             bot.MakeMove(state);
         }
+
+        [TestMethod]
+        public void FuckingTest()
+        {
+            var round1 = new Round();
+            round1.SetP1(Move.R);
+            round1.SetP2(Move.P);
+            var round2 = new Round();
+            round2.SetP1(Move.R);
+            round2.SetP2(Move.P);
+            var state = new Gamestate();
+            state.SetRounds(new Round[] { round1, round2 });
+
+            var result = new ExampleBot.ExampleBot().MakeMove(state);
+
+            Assert.AreEqual(Move.S, result);
+        }
     }
 }

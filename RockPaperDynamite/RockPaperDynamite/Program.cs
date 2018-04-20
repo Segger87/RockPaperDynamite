@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using BotInterface.Bot;
 using BotInterface.Game;
 
@@ -9,64 +11,85 @@ namespace ExampleBot
     {
         Random rnd = new Random();
         public string LastMove;
-        public int PaperRepeater;
-        public int ScissorRepeater;
-        public int RockRepeater;
-        public int DynamiteRepeater;
-        public int WaterRepeater;
+        public int ResponseCounter;
         public int DynamiteCount;
         public Dictionary<Move, int> Repeater;
-        public Dictionary<Move, int> countLastMove;
-
+        public Dictionary<Move, int> CountLastMove;
+        public Dictionary<Move, Move> Response;
+        public List<Move> Moves;
         public ExampleBot()
         {
-            countLastMove.Add(Move.D, 0);
-            countLastMove.Add(Move.W, 0);
-            countLastMove.Add(Move.R, 0);
-            countLastMove.Add(Move.S, 0);
-            countLastMove.Add(Move.P, 0);
-            Repeater.Add(Move.D, 0);
-            Repeater.Add(Move.W, 0);
-            Repeater.Add(Move.R, 0);
-            Repeater.Add(Move.S, 0);
-            Repeater.Add(Move.P, 0);
+            CountLastMove = new Dictionary<Move, int>
+            {
+                { Move.D, 0 },
+                { Move.W, 0 },
+                { Move.R, 0 },
+                { Move.S, 0 },
+                { Move.P, 0 }
+            };
+            Repeater = new Dictionary<Move, int>
+            {
+                { Move.D, 0 },
+                { Move.W, 0 },
+                { Move.R, 0 },
+                { Move.S, 0 },
+                { Move.P, 0 }
+            };
+            Response = new Dictionary<Move, Move>
+            {
+                { Move.P, Move.S},
+                { Move.R, Move.P},
+                { Move.S, Move.R},
+                { Move.D, Move.W},
+                { Move.W, Move.R}
+
+
+            };
+            Moves = new List<Move>();
         }
 
         public Move MakeMove(Gamestate gamestate)
         {
-            if (countLastMove[Move.P] == 3)
+            if (gamestate.GetRounds().Length == 0)
             {
-                PaperRepeater += 1;
-                countLastMove[Move.P] = 0;
-                return Scissors();
+                return RandomMove();
+            }
+            var lastMove = gamestate.GetRounds().Last();
+            var p1Move = lastMove.GetP1();
+            var p2Move = lastMove.GetP2();
+            Moves.Add(p2Move);
+            CountLastMove[p2Move]++;
+
+            if (Repeater[p2Move] > 2 && DynamiteCount < 100)
+            {
+                ResponseCounter++;
+                if (ResponseCounter == 2 && DynamiteCount <= 100)
+                {
+                    ResponseCounter = 0;
+                    return RandomMove();
+                }
+                return Response[p2Move];
             }
 
-            if (countLastMove[Move.R] == 3)
+            if (ResponseCounter > 50)
             {
-                RockRepeater += 1;
-                countLastMove[Move.R] = 0;
-                return Paper();
+                return RandomMoveWithoutDynamiteOrWater();
             }
 
-            if (countLastMove[Move.S] == 3)
+            if (Response[p1Move] == Move.D)
             {
-                ScissorRepeater += 1;
-                countLastMove[Move.S] = 0;
-                return Rock();
+                DynamiteCount++;
+
             }
 
-            if (countLastMove[Move.D] == 3)
+            foreach (var move in Moves)
             {
-                DynamiteRepeater += 1;
-                countLastMove[Move.D] = 0;
-                return Water();
-            }
-
-            if (countLastMove[Move.W] == 3)
-            {
-                Repeater[Move.W] += 1;
-                countLastMove[Move.W] = 0;
-                return Rock();
+                if (CountLastMove[move] == 2)
+                {
+                    Repeater[move]++;
+                    CountLastMove[move] = 0;
+                    return Response[move];
+                }
             }
 
             if (DynamiteCount >= 100)
@@ -75,40 +98,6 @@ namespace ExampleBot
             }
 
             return RandomMove();
-        }
-
-
-
-        public Move PlayMove(Move move)
-        {
-            Repeater[move] += 1;
-            countLastMove[move] = 0;
-            return Rock();
-        }
-
-        public Move Paper()
-        {
-            return Move.P;
-        }
-
-        public Move Scissors()
-        {
-            return Move.S;
-        }
-
-        public Move Rock()
-        {
-            return Move.R;
-        }
-
-        public Move Water()
-        {
-            return Move.W;
-        }
-
-        public Move Dynamite()
-        {
-            return Move.D;
         }
 
         public Move RandomMove()
